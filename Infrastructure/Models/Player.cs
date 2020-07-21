@@ -2,7 +2,7 @@
 
 namespace Infrastructure.Models
 {
-    public class Player
+    public class Player : IModel
     {
         public ObjectId Id { get; set; }
         public string Name { get; set; }

@@ -1,11 +1,12 @@
-﻿using MongoDB.Bson;
+﻿using System.Collections.Generic;
+using MongoDB.Bson;
 
 namespace Infrastructure.Models
 {
-    public class Category
+    public class Category : IModel
     {
         public ObjectId Id { get; set; }
         public string Name { get; set; }
-        public BsonArray Questions { get; set; }
+        public List<Question> Questions { get; set; }
     }
 }

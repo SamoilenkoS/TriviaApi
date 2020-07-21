@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using MongoDB.Bson;
 
 namespace Infrastructure.Models
 {
-    public class GameplayRoom
+    public class GameplayRoom : IModel
     {
         public ObjectId Id { get; set; }
-        public BsonInt32 MaxPlayers { get; set; }
-        public BsonArray Players { get; set; }
+        public int MaxPlayers { get; set; }
+        public List<Player> Players { get; set; }
     }
 }

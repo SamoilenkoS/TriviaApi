@@ -8,6 +8,6 @@ namespace Infrastructure.Models
         public ObjectId Id { get; set; }
         public string Text { get; set; }
         public string Category { get; set; }
-        public List<Answer> Answers { get; set; }
+        public IEnumerable<Answer> Answers { get; set; }
     }
 }

@@ -7,6 +7,6 @@ namespace Infrastructure.Models
     {
         public ObjectId Id { get; set; }
         public int MaxPlayers { get; set; }
-        public List<Player> Players { get; set; }
+        public IEnumerable<Player> Players { get; set; }
     }
 }

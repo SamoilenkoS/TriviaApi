@@ -14,8 +14,6 @@ namespace TriviaApi
     {
         public static void Main(string[] args)
         {
-            DbConnection connection = new DbConnection();
-            connection.Connect();
             CreateHostBuilder(args).Build().Run();
         }
 

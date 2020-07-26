@@ -18,17 +18,15 @@ namespace TriviaApi.Controllers
         {
             var config = new MapperConfiguration(mapperConfiguration => mapperConfiguration.CreateMap<Category, UICategory>()
                 .ForMember(
-                    nameof(UICategory.Id), 
+                    uiCategory => uiCategory.Id, 
                     memberConfiguration => memberConfiguration.MapFrom(category => category.Id.ToString()))
                 .ForMember(
-                    nameof(UICategory.Name),
-                    memberConfiguration => memberConfiguration.MapFrom(category => category.Name))
-                .ForMember(
-                    nameof(UICategory.Questions),
-                    memberConfiguration => memberConfiguration.MapFrom(
-                        category => category.Questions.Select(objectId => objectId.ToString()))));
+                    uiCategory => uiCategory.Name,
+                    memberConfiguration => memberConfiguration.MapFrom(category => category.Name)));
             var mapper = new Mapper(config);
+
             var dbCategories = await DbConnection.GetAllAsync<Category>(new MongoDB.Bson.BsonDocument());
+
             return mapper.Map<IEnumerable<UICategory>>(dbCategories);
         }
 

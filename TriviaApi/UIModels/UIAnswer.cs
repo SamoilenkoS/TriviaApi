@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 
 namespace TriviaApi.UIModels
 {
-    public class UICategory
+    public class UIAnswer
     {
         public string Id { get; set; }
-        public  string Name { get; set; }
-        public  IEnumerable<string> Questions { get; set; }
+        public string Text { get; set; }
+        public bool IsCorrect { get; set; }
     }
 }

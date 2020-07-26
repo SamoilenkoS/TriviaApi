@@ -31,7 +31,7 @@ namespace Infrastructure
 
         public static async Task<T> GetAsync<T>(ObjectId id) where T : IModel
         {
-            var filter = new BsonDocument(nameof(IModel.Id), id.ToString());
+            var filter = new BsonDocument("_id", id);
             var items = await GetAllAsync<T>(filter);
             return items.FirstOrDefault();
         }

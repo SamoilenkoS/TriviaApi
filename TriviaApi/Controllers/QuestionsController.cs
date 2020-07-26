@@ -14,7 +14,7 @@ namespace TriviaApi.Controllers
     [Route("api/[controller]")]
     public class QuestionsController : ControllerBase
     {
-        [HttpGet("{categoryId}")]
+        [HttpGet("By_Category/{categoryId}")]
         public async Task<UIQuestion> GetRandomQuestionByCategory(string categoryId)
         {
             var categoryInfo = await Infrastructure.DbConnection.GetAsync<Category>(ObjectId.Parse(categoryId));

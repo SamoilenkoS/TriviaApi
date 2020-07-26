@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TriviaApi.SignalRHubs;
 
 namespace TriviaApi
 {
@@ -19,6 +20,7 @@ namespace TriviaApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddSignalR();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -29,6 +31,14 @@ namespace TriviaApi
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors(builder =>
+            {
+                 builder.WithOrigins("http://localhost:8000/")
+                .AllowAnyHeader()
+                .WithMethods("GET", "POST")
+                .AllowCredentials();
+            });
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -38,6 +48,7 @@ namespace TriviaApi
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHub<GameHub>("/game");
             });
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Infrastructure.Models;
 using MongoDB.Bson;
@@ -17,6 +18,7 @@ namespace Infrastructure
         {
             var connectionString = "mongodb://localhost:27017";
             var mongoClient = new MongoClient(connectionString);
+            mongoClient.DropDatabase("TriviaDB", CancellationToken.None);
             mongoDatabase = mongoClient.GetDatabase("TriviaDB");
             Initialize();
         }
@@ -31,7 +33,7 @@ namespace Infrastructure
         {
             var filter = new BsonDocument(nameof(IModel.Id), id.ToString());
             var items = await GetAllAsync<T>(filter);
-            return items.Count() != 0 ? items.First() : default;
+            return items.FirstOrDefault();
         }
 
         public static async Task SaveAsync<T>(T item) where T : IModel
@@ -42,14 +44,14 @@ namespace Infrastructure
 
         public static async Task SaveAsync<T>(IEnumerable<T> items) where T : IModel
         {
-            var collection = mongoDatabase.GetCollection<T>(items.ToList()[0].GetType().ToString());
+            var collection = mongoDatabase.GetCollection<T>(items.First().GetType().ToString());
             await collection.InsertManyAsync(items);
         }
 
         public static async Task UpdateAsync<T>(T item) where T : IModel
         {
-            var filter = new BsonDocument(nameof(IModel.Id), item.Id.ToString());
-            var items = mongoDatabase.GetCollection<BsonDocument>(typeof(T).ToString());
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
+            var items = mongoDatabase.GetCollection<BsonDocument>(item.ToString());
             await items.ReplaceOneAsync(filter, item.ToBsonDocument());
         }
 
@@ -57,15 +59,27 @@ namespace Infrastructure
         {
             var emptyFilter = new BsonDocument();
             var players = await GetAllAsync<Player>(emptyFilter);
-            if(players.Count() == 0)
+            if(!players.Any())
             {
                 await CreatePlayers(100);
             }
 
             var categories = await GetAllAsync<Category>(emptyFilter);
-            if(categories.Count() == 0)
+            if(!categories.Any())
             {
-                await CreateCategories(10);
+                categories = await CreateCategories(10);
+            }
+
+            foreach (var category in categories)
+            {
+                var categoryFilter = new BsonDocument(nameof(Question.Category), category.Name);
+                var categoryQuestions = await GetAllAsync<Question>(categoryFilter);
+                if (!categoryQuestions.Any())
+                {
+                    var questions = await CreateQuestionsWithAnswers(50, category.Name);
+                    category.Questions = questions.Select(question => question.Id);
+                    await UpdateAsync(category);
+                }
             }
         }
 
@@ -90,7 +104,7 @@ namespace Infrastructure
 
         }
 
-        private static async Task CreateCategories(int count)
+        private static async Task<IEnumerable<Category>> CreateCategories(int count)
         {
             var categories = new List<Category>();
             for (int i = 0; i < count; i++)
@@ -99,53 +113,59 @@ namespace Infrastructure
                 {
                     Name = GetRandomString(10)
                 };
-                var questions = await CreateQuestions(50, category.Name);
-                category.Questions = questions;
                 categories.Add(category);
             }
 
             await SaveAsync(categories);
+
+            return categories;
         }
 
-        private static async Task<IEnumerable<Question>> CreateQuestions(int count, string categoryTitle)
+        private static async Task<IEnumerable<Question>> CreateQuestionsWithAnswers(int count, string categoryTitle)
         {
             var random = new Random();
             var questions = new List<Question>();
+            var answersCount = 4;
+            var answerLength = 5;
             for (int i = 0; i < count; i++)
             {
                 var answers = new List<Answer>();
-                var correctAnswerIndex = random.Next(0, 4);
-                for (int j = 0; j < 4; j++)
+                var correctAnswerIndex = random.Next(0, answersCount);
+                for (int j = 0; j < answersCount; j++)
                 {
                     answers.Add(
                         new Answer
                         {
-                            Text = GetRandomString(5),
+                            Text = GetRandomString(answerLength),
                             IsCorrect = j == correctAnswerIndex
                         });
                 }
+
+                await SaveAsync(answers);
 
                 var question = new Question
                 {
                     Text = $"This is the {i} question for the category {categoryTitle}",
                     Category = categoryTitle,
-                    Answers = answers
+                    Answers = answers.Select(answer => answer.Id)
                 };
 
                 questions.Add(question);
             }
+
+            await SaveAsync(questions);
 
             return questions;
         }
 
         private static string GetRandomString(int length)
         {
-            Random random = new Random();
+            var random = new Random();
             var randomString = new StringBuilder();
+            var charRange = 'z' - 'A';
             for (int i = 0; i < length; i++)
             {
-                var randomChar = 'A';
-                randomChar = (char)(randomChar + random.Next(0, 52)); //26 letters * 2 types of register (upper and lower)
+                var randomChar = (char) ('A' + random.Next(0, charRange));
                 randomString.Append(randomChar);
             }
 

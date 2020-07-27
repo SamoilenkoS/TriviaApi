@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TriviaApi.SignalRHubs
 {
-    public class GameHub : Hub
+    public class TriviaHub : Hub
     {
         public async Task Send(string jsonData)
         { 

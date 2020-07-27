@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,6 +21,17 @@ namespace TriviaApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder
+                        .AllowCredentials()
+                        .WithOrigins("http://localhost:8000")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
             services.AddSignalR();
         }
 
@@ -31,25 +43,18 @@ namespace TriviaApi
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseCors(builder =>
-            {
-                 builder.WithOrigins("http://localhost:8000/")
-                .AllowAnyHeader()
-                .WithMethods("GET", "POST")
-                .AllowCredentials();
-            });
-
             app.UseHttpsRedirection();
 
             app.UseRouting();
-
+            app.UseCors("CorsPolicy");
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<TriviaHub>("/trivia");
                 endpoints.MapControllers();
-                endpoints.MapHub<GameHub>("/game");
             });
         }
+
     }
 }

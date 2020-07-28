@@ -10,7 +10,7 @@ namespace Infrastructure.Models
         public int Score { get; set; }
         public DateTime LastGameDate { get; set; }
         public bool IsGameOrganizer { get; set; }
-        public ObjectId ConnectionId { get; set; }
-        public CharacterColor CharacterColor { get; set; }
+        public string ConnectionId { get; set; }
+        public string CharacterColor { get; set; }
     }
 }

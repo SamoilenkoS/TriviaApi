@@ -7,6 +7,6 @@ namespace Infrastructure.Models
     {
         public ObjectId Id { get; set; }
         public int MaxPlayers { get; set; }
-        public IEnumerable<ObjectId> Players { get; set; }
+        public IEnumerable<string> Players { get; set; } // contains ConnectionId SignalR strings
     }
 }

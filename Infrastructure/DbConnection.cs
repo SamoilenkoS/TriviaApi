@@ -32,6 +32,11 @@ namespace Infrastructure
         public static async Task<T> GetAsync<T>(ObjectId id) where T : IModel
         {
             var filter = new BsonDocument("_id", id);
+            return await GetAsync<T>(filter);
+        }
+
+        public static async Task<T> GetAsync<T>(BsonDocument filter) where T : IModel
+        {
             var items = await GetAllAsync<T>(filter);
             return items.FirstOrDefault();
         }
@@ -59,15 +64,17 @@ namespace Infrastructure
         {
             var emptyFilter = new BsonDocument();
             var players = await GetAllAsync<Player>(emptyFilter);
-            if(!players.Any())
+            if (!players.Any())
             {
-                await CreatePlayers(100);
+                players = ModelFactory.CreatePlayers(100);
+                await SaveAsync(players);
             }
 
             var categories = await GetAllAsync<Category>(emptyFilter);
-            if(!categories.Any())
+            if (!categories.Any())
             {
-                categories = await CreateCategories(10);
+                categories = ModelFactory.CreateCategories(10);
+                await SaveAsync(categories);
             }
 
             foreach (var category in categories)
@@ -76,100 +83,21 @@ namespace Infrastructure
                 var categoryQuestions = await GetAllAsync<Question>(categoryFilter);
                 if (!categoryQuestions.Any())
                 {
-                    var questions = await CreateQuestionsWithAnswers(50, category.Name);
-                    category.Questions = questions.Select(question => question.Id);
+                    var questionIds = new List<ObjectId>();
+                    for (int i = 0; i < 50; i++)
+                    {
+                        var newQuestionWithAnswers = ModelFactory.CreateQuestionWithAnswers(i, category.Name);
+                        await SaveAsync(newQuestionWithAnswers.answers);
+                        newQuestionWithAnswers.question.Answers = newQuestionWithAnswers.answers.Select(answer => answer.Id);
+                        await SaveAsync(newQuestionWithAnswers.question);
+                        questionIds.Add(newQuestionWithAnswers.question.Id);
+                    }
+
+                    category.Questions = questionIds;
                     await UpdateAsync(category);
                 }
             }
         }
 
-        private static async Task CreatePlayers(int count)
-        {
-            var random = new Random();
-            var colors = Enum.GetValues(typeof(CharacterColor));
-            var players = new List<Player>();
-            for (int i = 0; i < count; i++)
-            {
-                var player = new Player
-                {
-                    Score = random.Next(0, 700),
-                    Name = $"TestPlayer_{i}",
-                    LastGameDate = DateTime.Now.Subtract(TimeSpan.FromDays(random.Next(0,60))),
-                    CharacterColor = (CharacterColor)colors.GetValue(random.Next(colors.Length))
-                };
-
-                players.Add(player);
-            }
-            await SaveAsync(players);
-
-        }
-
-        private static async Task<IEnumerable<Category>> CreateCategories(int count)
-        {
-            var categories = new List<Category>();
-            for (int i = 0; i < count; i++)
-            {
-                var category = new Category
-                {
-                    Name = GetRandomString(10)
-                };
-                categories.Add(category);
-            }
-
-            await SaveAsync(categories);
-
-            return categories;
-        }
-
-        private static async Task<IEnumerable<Question>> CreateQuestionsWithAnswers(int count, string categoryTitle)
-        {
-            var random = new Random();
-            var questions = new List<Question>();
-            var answersCount = 4;
-            var answerLength = 5;
-            for (int i = 0; i < count; i++)
-            {
-                var answers = new List<Answer>();
-                var correctAnswerIndex = random.Next(0, answersCount);
-                for (int j = 0; j < answersCount; j++)
-                {
-                    answers.Add(
-                        new Answer
-                        {
-                            Text = GetRandomString(answerLength),
-                            IsCorrect = j == correctAnswerIndex
-                        });
-                }
-
-                await SaveAsync(answers);
-
-                var question = new Question
-                {
-                    Text = $"This is the {i} question for the category {categoryTitle}",
-                    Category = categoryTitle,
-                    Answers = answers.Select(answer => answer.Id)
-                };
-
-                questions.Add(question);
-            }
-
-            await SaveAsync(questions);
-
-            return questions;
-        }
-
-        private static string GetRandomString(int length)
-        {
-            var random = new Random();
-            var randomString = new StringBuilder();
-            var charRange = 'z' - 'A';
-            for (int i = 0; i < length; i++)
-            {
-                var randomChar = (char) ('A' + random.Next(0, charRange));
-                randomString.Append(randomChar);
-            }
-
-            return randomString.ToString();
-        }
     }
 }

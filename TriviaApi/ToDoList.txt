@@ -1,0 +1,7 @@
+﻿TODO
+1) Remove string constants
+2) Introduce MediatR to move DB logic to Handlers
+3) Move mapper logic to separate class
+4) Add null checks where needed
+5) Introduce Model Factory with reading from file with non-random questions
+6) Move constants to Config file

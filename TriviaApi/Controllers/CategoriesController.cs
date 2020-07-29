@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Infrastructure;
@@ -13,6 +12,12 @@ namespace TriviaApi.Controllers
     [Route("api/[controller]")]
     public class CategoriesController : ControllerBase
     {
+        private readonly IDbConnection _dbConnection;
+        public CategoriesController(IDbConnection dbConnection)
+        {
+            _dbConnection = dbConnection;
+        }
+
         [HttpGet]
         public async Task<IEnumerable<UICategory>> Get()
         {
@@ -25,7 +30,7 @@ namespace TriviaApi.Controllers
                     memberConfiguration => memberConfiguration.MapFrom(category => category.Name)));
             var mapper = new Mapper(config);
 
-            var dbCategories = await DbConnection.GetAllAsync<Category>(new MongoDB.Bson.BsonDocument());
+            var dbCategories = await _dbConnection.GetAllAsync<Category>(new MongoDB.Bson.BsonDocument());
 
             return mapper.Map<IEnumerable<UICategory>>(dbCategories);
         }

@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Infrastructure.Models;
-using MongoDB.Bson;
 
 namespace Infrastructure
 {
-    public class ModelFactory
+    public class ModelFactory : IModelFactory
     {
-        public static IEnumerable<Player> CreatePlayers(int count)
+        public IEnumerable<Player> CreatePlayers(int count)
         {
             var random = new Random();
             var colors = Enum.GetValues(typeof(CharacterColor));
@@ -20,7 +17,7 @@ namespace Infrastructure
                 {
                     Score = random.Next(0, 700),
                     Name = $"TestPlayer_{i}",
-                    LastGameDate = DateTime.Now.Subtract(TimeSpan.FromDays(random.Next(0,60))),
+                    LastGameDate = DateTime.Now.Subtract(TimeSpan.FromDays(random.Next(0, 60))),
                     CharacterColor = colors.GetValue(random.Next(colors.Length)).ToString()
                 };
 
@@ -30,7 +27,7 @@ namespace Infrastructure
             return players;
         }
 
-        public static IEnumerable<Category> CreateCategories(int count)
+        public IEnumerable<Category> CreateCategories(int count)
         {
             var categories = new List<Category>();
             for (int i = 0; i < count; i++)
@@ -45,7 +42,8 @@ namespace Infrastructure
             return categories;
         }
 
-        public static (Question question, IEnumerable<Answer> answers) CreateQuestionWithAnswers(int questionNumber, string categoryTitle)
+        public (Question question, IEnumerable<Answer> answers) CreateQuestionWithAnswers(int questionNumber,
+            string categoryTitle)
         {
             var random = new Random();
             var answersCount = 4;
@@ -61,6 +59,7 @@ namespace Infrastructure
                         IsCorrect = j == correctAnswerIndex
                     });
             }
+
             var question = new Question
             {
                 Text = $"This is the {questionNumber} question for the category {categoryTitle}",
@@ -70,7 +69,7 @@ namespace Infrastructure
             return (question, answers);
         }
 
-        public static GameplayRoom CreateGameplayRoom(string playerId)
+        public GameplayRoom CreateGameplayRoom(string playerId)
         {
             return new GameplayRoom
             {

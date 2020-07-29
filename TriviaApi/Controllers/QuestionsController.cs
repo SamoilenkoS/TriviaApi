@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Infrastructure;
 using Infrastructure.Models;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -14,12 +15,18 @@ namespace TriviaApi.Controllers
     [Route("api/[controller]")]
     public class QuestionsController : ControllerBase
     {
+        private readonly IDbConnection _dbConnection;
+        public QuestionsController(IDbConnection dbConnection)
+        {
+            _dbConnection = dbConnection;
+        }
+
         [HttpGet("By_Category/{categoryId}")]
         public async Task<UIQuestion> GetRandomQuestionByCategory(string categoryId)
         {
-            var categoryInfo = await Infrastructure.DbConnection.GetAsync<Category>(ObjectId.Parse(categoryId));
+            var categoryInfo = await _dbConnection.GetAsync<Category>(ObjectId.Parse(categoryId));
             var dbQuestions =
-                await Infrastructure.DbConnection.GetAllAsync<Question>(
+                await _dbConnection.GetAllAsync<Question>(
                     new BsonDocument(
                         nameof(Question.Category),
                         categoryInfo.Name));
@@ -29,7 +36,7 @@ namespace TriviaApi.Controllers
             var questionToMap = dbQuestions.ToList()[questionId];
             foreach (var answerId in questionToMap.Answers)
             {
-                answers.Add(await Infrastructure.DbConnection.GetAsync<Answer>(answerId));
+                answers.Add(await _dbConnection.GetAsync<Answer>(answerId));
             }
 
             var config = new MapperConfiguration(mapperConfiguration =>

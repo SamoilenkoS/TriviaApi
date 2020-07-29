@@ -27,7 +27,9 @@ namespace TriviaApi
                 {
                     builder
                         .AllowCredentials()
-                        .WithOrigins("http://localhost:8000")
+                        .WithOrigins(
+                            "http://projects.fgfactory.com",
+                            "http://localhost:8000")
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });

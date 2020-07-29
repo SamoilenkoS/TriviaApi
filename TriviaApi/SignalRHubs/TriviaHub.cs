@@ -3,26 +3,53 @@ using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Infrastructure;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
+using Serilog;
 
 namespace TriviaApi.SignalRHubs
 {
     public class TriviaHub : Hub
     {
         public async Task Send(string jsonData)
-        { 
-            var categories = await Infrastructure.DbConnection.GetAllAsync<Category>(new MongoDB.Bson.BsonDocument());
+        {
+            Log.Logger.Information($"Send: {jsonData}");
+            var gameplayRoom = await GetPlayerRoom();
+            var anotherPlayerIds = gameplayRoom.Players.Except(new List<string> {Context.ConnectionId});
+            foreach (var playerId in anotherPlayerIds)
+            {
+                await Clients.Client(playerId).SendAsync("Send", jsonData);
+            }
         }
 
         public async Task Leave()
         {
+            Log.Logger.Information($"Leave: {Context.ConnectionId}");
+            var gameplayRoom = await GetPlayerRoom();
+            if (gameplayRoom == null)
+            {
+                return;
+            }
+            var anotherPlayerIds = gameplayRoom.Players.Except(new List<string> {Context.ConnectionId});
+            foreach (var playerId in anotherPlayerIds)
+            {
+                await Clients.Client(playerId).SendAsync("OpponentLeave");
+            }
 
+            await DbConnection.RemoveAsync<GameplayRoom>(new BsonDocument("_id", gameplayRoom.Id));
+        }
+
+        public override async Task OnDisconnectedAsync(Exception exception)
+        {
+            await Leave();
         }
 
         public async Task Join(string characterColor)
         {
+            Log.Logger.Information($"Join: {Context.ConnectionId} {characterColor}");
             var rooms = await DbConnection.GetAllAsync<GameplayRoom>(new BsonDocument());
             if (!rooms.Any())//no room
             {
@@ -32,10 +59,11 @@ namespace TriviaApi.SignalRHubs
 
                 var room = ModelFactory.CreateGameplayRoom(firstPlayer.ConnectionId);
                 await DbConnection.SaveAsync(room);//creating room
+                Log.Logger.Information($"User {Context.ConnectionId} added to room {room.Id}");
             }
             else//room exist
             {
-                var gameplayRoom = rooms.First();
+                var gameplayRoom = rooms.First(room => room.Players.Count() < room.MaxPlayers);
                 var secondPlayer = await DbConnection.GetAsync<Player>(
                     new BsonDocument("ConnectionId", Context.ConnectionId));
                 secondPlayer = await CreateOrUpdatePlayer(secondPlayer, characterColor, false);
@@ -46,6 +74,7 @@ namespace TriviaApi.SignalRHubs
                 };
                 gameplayRoom.Players = players;
                 await DbConnection.UpdateAsync(gameplayRoom);
+                Log.Logger.Information($"User {Context.ConnectionId} added to room {gameplayRoom.Id}");
                 var firstPlayer = await DbConnection.GetAsync<Player>(new BsonDocument("ConnectionId", players[0]));
                 await Clients.Client(secondPlayer.ConnectionId).SendAsync(
                     "OpponentJoined",
@@ -57,8 +86,13 @@ namespace TriviaApi.SignalRHubs
                     secondPlayer.Name,
                     secondPlayer.CharacterColor,
                     secondPlayer.IsGameOrganizer);
-                await Clients.Client(secondPlayer.ConnectionId).SendAsync("CanPlay");
-                await Clients.Client(firstPlayer.ConnectionId).SendAsync("CanPlay");
+                if (gameplayRoom.Players.Count() == gameplayRoom.MaxPlayers)
+                {
+                    foreach (var playerId in gameplayRoom.Players)
+                    {
+                        await Clients.Client(playerId).SendAsync("CanPlay");
+                    }
+                }
             }
 
         }
@@ -88,6 +122,12 @@ namespace TriviaApi.SignalRHubs
             }
 
             return player;
+        }
+
+        private async Task<GameplayRoom> GetPlayerRoom()
+        {
+            var roomFilter = new BsonDocument("Players", Context.ConnectionId);
+            return await DbConnection.GetAsync<GameplayRoom>(roomFilter);
         }
 
     }

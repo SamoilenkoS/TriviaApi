@@ -12,10 +12,3 @@
 8. Open new tab in browser and go to [http://localhost:8000/](http://localhost:8000/). Use [https://localhost:5001/](https://localhost:5001/) as input for dialog window.
 9. Duplicate previously created tab and do the same work.
 Game will start.
-# Known bug (UI side)
-1. Create game between two players
-2. Choose any answers for question
-3. Let one player press "Exit" and another one press "Play again"
-4. User which selected "Play again" should give message "OpponentLeave".
-
-Looks like there is no "Leave()" called on hub after "Exit" clicked.
